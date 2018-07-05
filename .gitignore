@@ -1,0 +1,7 @@
+_*
+*.o
+*.swp
+*.patch
+*.diff
+*.asc
+tags

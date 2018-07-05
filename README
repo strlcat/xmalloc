@@ -1,0 +1,106 @@
+xmalloc -- a safe and precise memory allocation wrapper.
+
+xmalloc is designed to provide a safe (usually for C strings) and precise memory allocation
+routines to userspace applications, service and system programs. It is a low level library,
+which replaces (overrides) host malloc of any kind.
+
+Goals of xmalloc:
+- Usage of host memory allocator (which is usually fast),
+- Precise allocations (so that allocation size is exact as requested),
+- Safety (so that if allocated space gets corrupted, the damage can be spotted and handled),
+- Telling the size of (by) allocated object.
+
+USAGE
+
+The main functions (xmalloc, xcalloc, xrealloc, xfree) usage is absolutely same as your
+manual pages or other malloc documentation says: they act precisely in the same way.
+They call host (malloc, free, realloc) only and manage some internal state of course.
+
+The only new function here is xszalloc, which takes an already allocated object pointer
+and tells it's allocation size, exactly (so there is no any overhead). On an NULL pointer,
+it just returns 0 (so that DYN_ARRAY_SZ(NULL) macro will work from for/while loops).
+
+The library user must provide his own three error handler functions:
+- xmalloc_ub(const void *offender): called when space was found to be corrupted or invalid.
+  `*offender' is the pointer with which one of the wrappers was called.
+- xmalloc_oom(int failed, int where): called on an OOM situation if `failed' == 1, or to reset
+  internal state if `failed' == 0. `where' tells the function from which it gets called:
+  OOM_MALLOC if the call was from xmalloc, or OOM_REALLOC if call was from xrealloc.
+  The handler must return 0 if a call to xmalloc_error must be done, 1 otherwise.
+- xmalloc_error(int where): the main error handler, which should terminate the program.
+  `where' as in xmalloc_oom. If no termination is intended, then wrappers just return NULL.
+
+xmalloc_oom should never touch errno or preserve it if xmalloc_error wants it pristine.
+
+Both xmalloc_oom and xmalloc_error may do nothing useful, compiled as an empty functions
+(xmalloc_oom should always return 0), but it is strongly recommended that xmalloc_ub will
+at least terminate program asap to prevent further corruption.
+It may safely call exit(1), or abort().
+
+You should be aware that xmalloc can detect and sieve corrupted, but _already allocated_ objects.
+It cannot and never will be able to detect invalid and dangling pointers, including those
+which were used after free (by chance xmalloc can look into still valid space and find
+something unusual and detect the corruption, but you never should rely on that), because
+host malloc gives no way to do that and probably never will (at least in near future).
+Because of that, there is no "verifier" function which takes an arbitrary pointer
+and tells if it's a valid xmalloc object or not. With xmalloc, you would just get a segfault.
+
+xmalloc always zeroes allocated objects when giving them away to application, and zeroes
+objects to be freed. There is no way to turn off this other than editing the source code.
+
+COMPILING
+
+This repository does not include Makefile. You should pull xmalloc.c and xmalloc.h into
+your own project, #include xmalloc.h, and compile xmalloc.o separately.
+
+Compiling xmalloc.o is easy:
+
+	cc -Wall -O2 -I. -c xmalloc.c
+
+You will get xmalloc.o, which you should link into your program which uses xmalloc functions.
+
+INTERNALS
+
+xmalloc requests memory bigger than user requests by a size of internal state.
+Such state includes the size of allocation, two Jenkins style hashes at header and footer
+of allocation, and aligning padding. Anything is handled in size_t-sized words.
+Aligning padding is required to meet the malloc criteria of returning a properly aligned
+object for any kind of allocation. Because of that, the xmalloc just shifts the address
+of user area by four host words forward so that an address is still not shifted by an
+odd number of words. For example, if host malloc returns (void *)0x820e0, then adding four
+size_t sizes (4*4) to it on an 32 bit machine will yield (void *)0x820f0, which is still
+properly aligned instead of (void *)0x820e4 for example in case if single "size header" style
+allocation which is somewhat popular when solving this task. On a 64 bit machine the same
+address will yield (void *)0x82100, so there are no any alignment troubles invoked.
+
+The memory layout of allocation header is:
+
+	[size][MGCNUMBER1][MGCNUMBER2][hash1][user area ...][hash2]
+
+[size] is an exact allocation size which user gave us.
+Two [MGCNUMBER]'s are alignment padding with some magic numbers, their presence is tested too.
+[hash1] is Jenkins header hash of size number only (not address).
+[user area ...] is actual user owned area which he may use arbitrarily.
+[hash2] is Jenkins hash of [hash1]. It gets stored exactly after user area.
+
+If anything inside of out of band area gets corrupted or invalid, such allocation area
+is declared invalid, and an Undefined Behavior handler xmalloc_ub is called.
+
+It could be a good idea to depend the hash from base address of allocation, but this
+would involve uintptr_t type, which I want to avoid for better portability
+(stdint.h is not the common citizen on all platforms).
+I am aware of the fact that the potential attacker could easily forge the header
+the way it is formed now, and I promise the change when it will be available.
+
+ORIGIN
+
+xmalloc was taken from ryshttpd, it was quickly written for it. But the functions were
+so standalone that I decided to put them into the separate repository, because I saw
+they plug in into other my programs well too.
+
+The xszalloc idea came from an earlier SMalloc library.
+
+COPYRIGHT
+
+Copyright (C) 2018 Andrey Rys. All rights reserved.
+xmalloc is MIT licensed. Please see the COPYRIGHT file included.
