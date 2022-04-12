@@ -31,8 +31,9 @@
 
 #include <stddef.h>
 
-#define OOM_MALLOC 1
-#define OOM_REALLOC 2
+typedef enum {
+	OOM_MALLOC = 1, OOM_REALLOC
+} xmalloc_oom_caller;
 
 /* Useful macros */
 #define DYN_ARRAY_SZ(x) (xszalloc(x)/sizeof(*x))
@@ -40,8 +41,8 @@
 
 /* External functions which library user _must_ provide */
 void xmalloc_ub(const void *); /* Undefined Behavior handler (called with offending pointer) */
-int xmalloc_oom(int, int); /* Out Of Memory handler */
-void xmalloc_error(int); /* Error handler */
+int xmalloc_oom(int, xmalloc_oom_caller); /* Out Of Memory handler */
+void xmalloc_error(xmalloc_oom_caller); /* Error handler */
 
 /* Main functions */
 void *xmalloc(size_t);
