@@ -37,18 +37,22 @@ typedef enum {
 
 /* Useful macros */
 #define DYN_ARRAY_SZ(x) (xszalloc(x)/sizeof(*x))
-#define pfree(p) do { xfree(p); p = NULL; } while (0)
 
 /* External functions which library user _must_ provide */
-void xmalloc_ub(const void *); /* Undefined Behavior handler (called with offending pointer) */
-int xmalloc_oom(int, xmalloc_oom_caller); /* Out Of Memory handler */
-void xmalloc_error(xmalloc_oom_caller); /* Error handler */
+extern void xmalloc_ub(const void *); /* Undefined Behavior handler (called with offending pointer) */
+extern int xmalloc_oom(int, xmalloc_oom_caller); /* Out Of Memory handler */
+extern void xmalloc_error(xmalloc_oom_caller); /* Error handler */
 
 /* Main functions */
-void *xmalloc(size_t);
-void *xcalloc(size_t, size_t);
-void *xrealloc(void *, size_t);
-void xfree(void *);
-size_t xszalloc(const void *);
+extern void *xmalloc(size_t);
+extern void *xcalloc(size_t, size_t);
+extern void *xrealloc(void *, size_t);
+extern void xfree(void *);
+#define pfree(p) do { xfree(p); p = NULL; } while (0)
+extern size_t xszalloc(const void *);
+
+/* String functions */
+char *xstrdup(const char *s);
+char *xstrndup(const char *s, size_t n);
 
 #endif
