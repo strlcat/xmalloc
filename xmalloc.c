@@ -30,9 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define yesno int
-#define NO 0
-#define YES 1
+typedef enum { NO, YES } xm_yesno;
 
 #define ALIGN_SIZES 4
 #define PROPER_ALIGN (sizeof(size_t)*ALIGN_SIZES)
@@ -62,7 +60,7 @@ static size_t uinthash(size_t x)
 }
 #undef UIHOP
 
-static yesno checkptr(const void *p)
+static xm_yesno checkptr(const void *p)
 {
 	size_t *sp;
 	size_t sz, x, y;
