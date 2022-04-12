@@ -71,11 +71,11 @@ static yesno checkptr(const void *p)
 	if (!p) return NO;
 
 	sp = (size_t *)p-ALIGN_SIZES;
-	sz = *sp;
-	if (*(sp+1) != (size_t)MGCNUMBER1) return NO;
-	if (*(sp+2) != (size_t)MGCNUMBER2) return NO;
+	sz = sp[0];
+	if (sp[1] != (size_t)MGCNUMBER1) return NO;
+	if (sp[2] != (size_t)MGCNUMBER2) return NO;
 	x = uinthash(sz);
-	if (x != *(sp+ALIGN_SIZES-1)) return NO;
+	if (x != sp[ALIGN_SIZES-1]) return NO;
 
 	s = (char *)sp;
 	s += PROPER_ALIGN+sz;
@@ -103,22 +103,22 @@ _try:	r = malloc(PROPER_ALIGN+n+sizeof(size_t));
 	else xmalloc_oom(NO, OOM_MALLOC);
 
 	memset(r, 0, PROPER_ALIGN+n+sizeof(size_t));
-	*r = n;
-	*(r+1) = (size_t)MGCNUMBER1;
-	*(r+2) = (size_t)MGCNUMBER2;
+	r[0] = n;
+	r[1] = (size_t)MGCNUMBER1;
+	r[2] = (size_t)MGCNUMBER2;
 	x = uinthash(n);
 	y = uinthash(x);
 	s = (char *)r;
 	s += PROPER_ALIGN+n;
 	memcpy(s, &y, sizeof(size_t));
-	*(r+ALIGN_SIZES-1) = x;
+	r[ALIGN_SIZES-1] = x;
 
-	return r+ALIGN_SIZES;
+	return &r[ALIGN_SIZES];
 }
 
 void *xcalloc(size_t x, size_t y)
 {
-	return xmalloc(x * y);
+	return xmalloc(x*y);
 }
 
 void *xrealloc(void *p, size_t n)
@@ -136,7 +136,7 @@ void *xrealloc(void *p, size_t n)
 	if (!checkptr(p)) xmalloc_ub(p);
 
 	r = (size_t *)p-ALIGN_SIZES;
-	sz = *r;
+	sz = r[0];
 
 	if (sz == n) return p;
 
@@ -164,17 +164,17 @@ _try:	t = realloc(r, PROPER_ALIGN+n+sizeof(size_t));
 		memset(s, 0, n-sz);
 	}
 
-	*r = n;
-	*(r+1) = (size_t)MGCNUMBER1;
-	*(r+2) = (size_t)MGCNUMBER2;
+	r[0] = n;
+	r[1] = (size_t)MGCNUMBER1;
+	r[2] = (size_t)MGCNUMBER2;
 	x = uinthash(n);
 	y = uinthash(x);
 	s = (char *)r;
 	s += PROPER_ALIGN+n;
 	memcpy(s, &y, sizeof(size_t));
-	*(r+ALIGN_SIZES-1) = x;
+	r[ALIGN_SIZES-1] = x;
 
-	return r+ALIGN_SIZES;
+	return &r[ALIGN_SIZES];
 }
 
 void xfree(void *p)
