@@ -1,7 +1,7 @@
 _*
-*.o
 *.swp
-*.patch
+*.o
+*.a
 *.diff
-*.asc
+*.patch
 tags
